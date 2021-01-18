@@ -1,28 +1,67 @@
-import urllib.request
-import urllib.parse
+import MySQLdb
+import requests
 from bs4 import BeautifulSoup
 
-plusUrl = urllib.parse.quote_plus(input('검색어를 입력하세요:'))
+if __name__ == "__main__":
+    RANK = 100  # 멜론 차트 순위가 1 ~ 100위까지 있음
 
-pageNum = 1
-count = 1
+    header = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko'}
+    req = requests.get('https://kin.naver.com/search/list.nhn?query=%ED%8C%94+%ED%86%B5%EC%A6%9D',
+                       headers=header)  # 주간 차트를 크롤링 할 것임
+    html = req.text
+    parse = BeautifulSoup(html, 'html.parser')
 
-i = input('몇페이지 크롤링 할까요? : ')
+    #titles = parse.find_all("div", {"class": "ellipsis rank01"})
+    #singers = parse.find_all("div", {"class": "ellipsis rank02"})
+    ul = parse.select_one('ul.basic1')
+    titles = ul.select('li> dl > dt > a')
+    answers = ul.select('li>dl>dd:nth-child(3)')
+    title =[]
+    answer=[]
+    for t in titles :
+        title.append(t.text)
 
-lastPage = int(i) * 10 - 9
-while pageNum < lastPage + 1:
-    url = f'https://search.naver.com/search.naver?date_from=&date_option=0&date_to=&dup_remove=1&nso=&post_blogurl=&post_blogurl_without=&query={plusUrl}&sm=tab_pge&srchby=all&st=sim&where=post&start={pageNum}'
+    for a in answers :
+        answer.append(a.text)
+        print(a.text)
 
-    html = urllib.request.urlopen(url).read()
-    soup = BeautifulSoup(html, 'html.parser')
+    items = [item for item in zip(title,answer)]
+    #title = []
+    #singer = []
 
-    title = soup.find_all(class_='sh_blog_title')
 
-    print(f'-----{count}페이지 결과입니다.-----')
-    for i in title:
-        print(i.attrs['title'])
-        print(i.attrs['href'])
-    print()
+   # for t in titles:
+    #    title.append(t.find('a').text)
 
-    pageNum += 10
-    count += 1
+    #for s in singers:
+     #   singer.append(s.find('span', {"class": "checkEllipsis"}).text)
+    #items = [item for item in zip(title, singer)]
+
+
+conn = MySQLdb.connect(
+    user="root",
+    passwd="1234",
+    host="localhost",
+    db="crawl",
+    charset="utf8"
+)
+# 커서 생성
+cursor = conn.cursor()
+
+# 실행할 때마다 다른값이 나오지 않게 테이블을 제거해두기
+cursor.execute("DROP TABLE IF EXISTS melon")
+
+# 테이블 생성하기
+cursor.execute("CREATE TABLE melon (`rank` int, title text, url text)")
+i = 1
+# 데이터 저장하기
+for item in items:
+    cursor.execute(
+        f"INSERT INTO melon VALUES({i},\"{item[0]}\",\"{item[1]}\")")
+    i += 1
+
+# 커밋하기
+conn.commit()
+# 연결종료하기
+conn.close()
