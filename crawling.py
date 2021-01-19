@@ -7,7 +7,7 @@ from openpyxl.styles import PatternFill, Color
 from openpyxl import Workbook
 
 # chrome driver 패스 설정
-path = "C:\chromedriver\chromedriver.exe"
+path = "chromedriver/chromedriver"
 driver = webdriver.Chrome(path)
 
 # 네이버 지식인 크롤링
@@ -31,7 +31,7 @@ def sort_kind(index):
         return 'none'
 
 
-keyword = '팔이 아파요'
+keyword = '우한'
 driver.get('https://kin.naver.com/search/list.nhn?query=' + get_keyword(keyword))
 driver.implicitly_wait(3)
 
